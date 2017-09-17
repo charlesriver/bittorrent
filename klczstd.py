@@ -16,13 +16,10 @@ from messages import Upload, Request
 from util import even_split
 from peer import Peer
 
-<<<<<<< HEAD
 from collections import Counter
 
-class klczstd(Peer):
-=======
+
 class KlczStd(Peer):
->>>>>>> d220292fe1db30aaa0323f401c7e46954a3a1536
     def post_init(self):
         print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
@@ -73,11 +70,9 @@ class KlczStd(Peer):
         rare_pieces = pieces_count.keys()[:-2]
         
         for peer in peers:
-<<<<<<< HEAD
             rare_pieces = set(rare_pieces).intersection(peer.available_pieces)
             n = min(self.max_requests, len(rare_pieces))
             for piece_id in random.sample(rare_pieces, n):
-=======
             av_set = set(peer.available_pieces)
             isect = av_set.intersection(np_set)
             n = min(self.max_requests, len(isect))
@@ -88,7 +83,6 @@ class KlczStd(Peer):
                 # aha! The peer has this piece! Request it.
                 # which part of the piece do we need next?
                 # (must get the next-needed blocks in order)
->>>>>>> d220292fe1db30aaa0323f401c7e46954a3a1536
                 start_block = self.pieces[piece_id]
                 r = Request(self.id, peer.id, piece_id, start_block)
                 requests.append(r)
@@ -137,18 +131,15 @@ class KlczStd(Peer):
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"
 
-<<<<<<< HEAD
             ###### history based on number of files they give you that you need
             
             request = random.choice(requests)
             chosen = [request.requester_id]
             
             
-=======
             #request = random.choice(requests)
             #chosen = [request.requester_id] ## CHOOSE BY CHOOSING THE ONE'S WHO GAVE MOST DOWNLOAD, ALSO DO OPTIMISTIC UNCHOKE
             chosen = [ranks[0][1]]
->>>>>>> d220292fe1db30aaa0323f401c7e46954a3a1536
             # Evenly "split" my upload bandwidth among the one chosen requester
             bws = even_split(self.up_bw, len(chosen))
 
