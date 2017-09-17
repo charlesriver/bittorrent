@@ -57,7 +57,7 @@ class KlczStd(Peer):
             av_set = set(peer.available_pieces)
             isect = av_set.intersection(np_set)
             n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces.
+            # More symmetry breaking -- ask for random pieces. ## DO SOME RAREST FIRST THING HERE
             # This would be the place to try fancier piece-requesting strategies
             # to avoid getting the same thing from multiple peers at a time.
             for piece_id in random.sample(isect, n):
@@ -89,17 +89,31 @@ class KlczStd(Peer):
         # has a list of Download objects for each Download to this peer in
         # the previous round.
 
+        prev_downloads = []
+        if round != 0:
+            prev_downloads = history.downloads[round-1]
+
+        ranks = []
+
+        for dl in prev_downloads:
+            if dl.to_id == self.id:
+                ranks.append((dl.blocks, dl.from_id))
+
+        # sort in descending order by who gave how much
+        ranks.sort(key=lambda tupl: tupl[0], reverse=True) 
+
         if len(requests) == 0:
             logging.debug("No one wants my pieces!")
             chosen = []
             bws = []
         else:
-            logging.debug("Still here: uploading to a random peer")
+            logging.debug("Still here: uploading to the best peer (change later)")
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"
 
-            request = random.choice(requests)
-            chosen = [request.requester_id]
+            #request = random.choice(requests)
+            #chosen = [request.requester_id] ## CHOOSE BY CHOOSING THE ONE'S WHO GAVE MOST DOWNLOAD, ALSO DO OPTIMISTIC UNCHOKE
+            chosen = [ranks[0][1]]
             # Evenly "split" my upload bandwidth among the one chosen requester
             bws = even_split(self.up_bw, len(chosen))
 
