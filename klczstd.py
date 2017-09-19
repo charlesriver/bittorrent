@@ -70,13 +70,12 @@ class KlczStd(Peer):
         rare_pieces = pieces_count.keys()[:-2]
         
         for peer in peers:
-            rare_pieces = set(rare_pieces).intersection(peer.available_pieces)
             n = min(self.max_requests, len(rare_pieces))
             for piece_id in random.sample(rare_pieces, n):
-            av_set = set(peer.available_pieces)
-            isect = av_set.intersection(np_set)
-            n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces. ## DO SOME RAREST FIRST THING HERE
+	            av_set = set(peer.available_pieces)
+	            isect = av_set.intersection(np_set)
+	            n = min(self.max_requests, len(isect))
+            # More symmetry breaking -- ask for random pieces.
             # This would be the place to try fancier piece-requesting strategies
             # to avoid getting the same thing from multiple peers at a time.
             for piece_id in random.sample(isect, n):
@@ -109,37 +108,46 @@ class KlczStd(Peer):
         # has a list of Download objects for each Download to this peer in
         # the previous round.
 
-        prev_downloads = []
-        if round != 0:
-            prev_downloads = history.downloads[round-1]
+        peer_contribution = []
+        if round >= 2: 
+	        for hist in np.concatenate((history.downloads[round-1],history.downloads[round-2])):
+	            from_you = hist.from_id
+	            num_blocks = hist.blocks
+	            if hist.to_id == self.id and "Seed" not in from_you:
+	                peer_contribution.append([from_you, num_blocks])
 
-        ranks = []
-
-        for dl in prev_downloads:
-            if dl.to_id == self.id:
-                ranks.append((dl.blocks, dl.from_id))
-
-        # sort in descending order by who gave how much
-        ranks.sort(key=lambda tupl: tupl[0], reverse=True) 
+        peer_pd = pd.DataFrame(peer_contribution, columns = ["Peer", "Num"])
+        peer_pd.groupby("Peer").sum()
+        peer_np = peer_pd.sort().as_matrix()
 
         if len(requests) == 0:
             logging.debug("No one wants my pieces!")
             chosen = []
             bws = []
         else:
-            logging.debug("Still here: uploading to the best peer (change later)")
+            logging.debug("Still here: uploading to the best peer")
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"
 
             ###### history based on number of files they give you that you need
             
-            request = random.choice(requests)
-            chosen = [request.requester_id]
-            
-            
-            #request = random.choice(requests)
-            #chosen = [request.requester_id] ## CHOOSE BY CHOOSING THE ONE'S WHO GAVE MOST DOWNLOAD, ALSO DO OPTIMISTIC UNCHOKE
-            chosen = [ranks[0][1]]
+            n = min(len(requests), 3)
+            contr_lst = [i for [i,j] in peer_np] 
+            logging.debug("Contribution list: %s" % (contr_lst))
+
+            if n == 0:
+            	chosen = []
+            else:
+            	chosen = contr_lst[:n-1]
+
+            if len(contr_lst) == 0:
+            	requested = random.choice(requests)
+            	chosen = np.append(chosen, requested.requester_id)
+            else:
+	            request_remaining = [i for i in contr_lst if i not in chosen]
+	            requested = random.choice(request_remaining)
+	            chosen = np.append(chosen, requested)
+
             # Evenly "split" my upload bandwidth among the one chosen requester
             bws = even_split(self.up_bw, len(chosen))
 
