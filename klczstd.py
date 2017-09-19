@@ -64,20 +64,23 @@ class KlczStd(Peer):
 		all_pieces = set()
 		for peer in peers:
 			all_pieces.update(peer.available_pieces)
-		isect = all_pieces.intersection(np_set)
-		all_pieces_filter = [i for i in all_pieces if i in isect]
-		pieces_count = Counter(all_pieces_filter)
+		# isect = all_pieces.intersection(np_set)
+		# all_pieces_filter = [i for i in all_pieces if i in isect]
+		# pieces_count = Counter(all_pieces_filter)
 
 		for peer in peers:
-			rare_pieces = pieces_count.keys()[:-2]
+			isect = all_pieces.intersection(np_set)
+			all_pieces_filter = [i for i in all_pieces if i in isect]
+			pieces_count = Counter(all_pieces_filter)
+			rare_pieces = pieces_count.keys()[::-1][:2]
 			rare_pieces_post = set(rare_pieces).intersection(peer.available_pieces)
-			av_set = set(peer.available_pieces)
-			isect = av_set.intersection(np_set)
 			n = min(self.max_requests, len(rare_pieces_post))
 			for piece_id in random.sample(rare_pieces_post, n):
 				start_block = self.pieces[piece_id]
 				r = Request(self.id, peer.id, piece_id, start_block)
 				requests.append(r)
+				if self.pieces[piece_id] == self.conf.blocks_per_piece:
+					np_set.discard(piece_id)
 		return requests
 		
 
@@ -133,7 +136,6 @@ class KlczStd(Peer):
 			
 			n = min(len(requests), 3)
 			contr_lst = [i for [i,j] in peer_np] 
-			logging.debug("Contribution list: %s" % (contr_lst))
 
 			if n == 0:
 				chosen = []

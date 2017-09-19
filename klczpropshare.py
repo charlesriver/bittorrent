@@ -18,7 +18,7 @@ from peer import Peer
 from collections import Counter
 
 
-class KlczStd(Peer):
+class KlczPropshare(Peer):
     def post_init(self):
         print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
@@ -151,6 +151,7 @@ class KlczStd(Peer):
 
             # Evenly "split" my upload bandwidth among the one chosen requester
             bws = even_split(self.up_bw, len(chosen))
+            logging.debug("Bandwidth: %s" %(bws))
 
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
