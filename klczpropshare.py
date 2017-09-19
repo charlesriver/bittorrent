@@ -18,7 +18,7 @@ from peer import Peer
 from collections import Counter
 
 
-class KlczPropshare(Peer):
+class KlczStd(Peer):
     def post_init(self):
         print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
@@ -66,28 +66,28 @@ class KlczPropshare(Peer):
         isect = all_pieces.intersection(np_set)
         all_pieces_filter = [i for i in all_pieces if i in isect]
         pieces_count = Counter(all_pieces_filter)
-        rare_pieces = pieces_count.keys()[:-2]
-        
+
         for peer in peers:
-            n = min(self.max_requests, len(rare_pieces))
-            for piece_id in random.sample(rare_pieces, n):
-                av_set = set(peer.available_pieces)
-                isect = av_set.intersection(np_set)
-                n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
-            for piece_id in random.sample(isect, n):
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
+            rare_pieces = pieces_count.keys()[:-2]
+            rare_pieces_post = set(rare_pieces).intersection(peer.available_pieces)
+            av_set = set(peer.available_pieces)
+            isect = av_set.intersection(np_set)
+            n = min(self.max_requests, len(rare_pieces_post))
+            for piece_id in random.sample(rare_pieces_post, n):
                 start_block = self.pieces[piece_id]
                 r = Request(self.id, peer.id, piece_id, start_block)
                 requests.append(r)
-
         return requests
+        
 
-
+   #      for peer in peers:
+            # rare_pieces = set(rare_pieces).intersection(peer.available_pieces)
+            # n = min(self.max_requests, len(rare_pieces))
+            # for piece_id in random.sample(rare_pieces, n):
+                # aha! The peer has this piece! Request it.
+                # which part of the piece do we need next?
+                # (must get the next-needed blocks in order)
+           
     def uploads(self, requests, peers, history):
         """
         requests -- a list of the requests for this peer for this round
@@ -138,7 +138,6 @@ class KlczPropshare(Peer):
                 chosen = []
             else:
                 chosen = contr_lst[:n-1]
-
 
             request_remaining = [i for i in contr_lst if i not in chosen]
 
