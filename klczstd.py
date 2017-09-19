@@ -72,9 +72,9 @@ class KlczStd(Peer):
         for peer in peers:
             n = min(self.max_requests, len(rare_pieces))
             for piece_id in random.sample(rare_pieces, n):
-	            av_set = set(peer.available_pieces)
-	            isect = av_set.intersection(np_set)
-	            n = min(self.max_requests, len(isect))
+                av_set = set(peer.available_pieces)
+                isect = av_set.intersection(np_set)
+                n = min(self.max_requests, len(isect))
             # More symmetry breaking -- ask for random pieces.
             # This would be the place to try fancier piece-requesting strategies
             # to avoid getting the same thing from multiple peers at a time.
@@ -110,11 +110,11 @@ class KlczStd(Peer):
 
         peer_contribution = []
         if round >= 2: 
-	        for hist in np.concatenate((history.downloads[round-1],history.downloads[round-2])):
-	            from_you = hist.from_id
-	            num_blocks = hist.blocks
-	            if hist.to_id == self.id and "Seed" not in from_you:
-	                peer_contribution.append([from_you, num_blocks])
+            for hist in np.concatenate((history.downloads[round-1],history.downloads[round-2])):
+                from_you = hist.from_id
+                num_blocks = hist.blocks
+                if hist.to_id == self.id and "Seed" not in from_you:
+                    peer_contribution.append([from_you, num_blocks])
 
         peer_pd = pd.DataFrame(peer_contribution, columns = ["Peer", "Num"])
         peer_pd.groupby("Peer").sum()
@@ -136,17 +136,19 @@ class KlczStd(Peer):
             logging.debug("Contribution list: %s" % (contr_lst))
 
             if n == 0:
-            	chosen = []
+                chosen = []
             else:
-            	chosen = contr_lst[:n-1]
+                chosen = contr_lst[:n-1]
 
-            if len(contr_lst) == 0:
-            	requested = random.choice(requests)
-            	chosen = np.append(chosen, requested.requester_id)
+            request_remaining = [i for i in contr_lst if i not in chosen]
+
+            if len(contr_lst) == 0 or len(request_remaining) == 0:
+                requested = random.choice(requests)
+                chosen = np.append(chosen, requested.requester_id)
             else:
-	            request_remaining = [i for i in contr_lst if i not in chosen]
-	            requested = random.choice(request_remaining)
-	            chosen = np.append(chosen, requested)
+                requested = random.choice(request_remaining)
+                chosen = np.append(chosen, requested)
+
 
             # Evenly "split" my upload bandwidth among the one chosen requester
             bws = even_split(self.up_bw, len(chosen))
@@ -156,6 +158,7 @@ class KlczStd(Peer):
                    for (peer_id, bw) in zip(chosen, bws)]
             
         return uploads
+
 
 
 
