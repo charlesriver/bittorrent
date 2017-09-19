@@ -52,21 +52,13 @@ class KlczStd(Peer):
 		requests = []   # We'll put all the things we want here
 		# Symmetry breaking is good...
 		random.shuffle(needed_pieces)
-		
-		# Sort peers by id.  This is probably not a useful sort, but other 
-		# sorts might be useful
-		peers.sort(key=lambda p: p.id)
+
 		# request all available pieces from all peers!
 		# (up to self.max_requests from each)
-		
-		#### New code
-		
+			
 		all_pieces = set()
 		for peer in peers:
 			all_pieces.update(peer.available_pieces)
-		# isect = all_pieces.intersection(np_set)
-		# all_pieces_filter = [i for i in all_pieces if i in isect]
-		# pieces_count = Counter(all_pieces_filter)
 
 		for peer in peers:
 			isect = all_pieces.intersection(np_set)
@@ -81,16 +73,8 @@ class KlczStd(Peer):
 				requests.append(r)
 				if self.pieces[piece_id] == self.conf.blocks_per_piece:
 					np_set.discard(piece_id)
-		return requests
-		
 
-   #      for peer in peers:
-			# rare_pieces = set(rare_pieces).intersection(peer.available_pieces)
-			# n = min(self.max_requests, len(rare_pieces))
-			# for piece_id in random.sample(rare_pieces, n):
-				# aha! The peer has this piece! Request it.
-				# which part of the piece do we need next?
-				# (must get the next-needed blocks in order)
+		return requests
 		   
 	def uploads(self, requests, peers, history):
 		"""
