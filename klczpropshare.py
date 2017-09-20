@@ -51,42 +51,29 @@ class KlczPropshare(Peer):
         requests = []   # We'll put all the things we want here
         # Symmetry breaking is good...
         random.shuffle(needed_pieces)
-        
-        # Sort peers by id.  This is probably not a useful sort, but other 
-        # sorts might be useful
-        peers.sort(key=lambda p: p.id)
+
         # request all available pieces from all peers!
         # (up to self.max_requests from each)
-        
-        #### New code
-        
+            
         all_pieces = set()
         for peer in peers:
             all_pieces.update(peer.available_pieces)
-        isect = all_pieces.intersection(np_set)
-        all_pieces_filter = [i for i in all_pieces if i in isect]
-        pieces_count = Counter(all_pieces_filter)
 
         for peer in peers:
-            rare_pieces = pieces_count.keys()[:-2]
+            isect = all_pieces.intersection(np_set)
+            all_pieces_filter = [i for i in all_pieces if i in isect]
+            pieces_count = Counter(all_pieces_filter)
+            rare_pieces = pieces_count.keys()[::-1][:2]
             rare_pieces_post = set(rare_pieces).intersection(peer.available_pieces)
-            av_set = set(peer.available_pieces)
-            isect = av_set.intersection(np_set)
             n = min(self.max_requests, len(rare_pieces_post))
             for piece_id in random.sample(rare_pieces_post, n):
                 start_block = self.pieces[piece_id]
                 r = Request(self.id, peer.id, piece_id, start_block)
                 requests.append(r)
-        return requests
-        
+                if self.pieces[piece_id] == self.conf.blocks_per_piece:
+                    np_set.discard(piece_id)
 
-   #      for peer in peers:
-            # rare_pieces = set(rare_pieces).intersection(peer.available_pieces)
-            # n = min(self.max_requests, len(rare_pieces))
-            # for piece_id in random.sample(rare_pieces, n):
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
+        return requests
            
     def uploads(self, requests, peers, history):
         """
@@ -109,15 +96,13 @@ class KlczPropshare(Peer):
 
         peer_contribution = []
         if round >= 2: 
-            for hist in np.concatenate((history.downloads[round-1],history.downloads[round-2])):
+            for hist in history.downloads[round-1]:
                 from_you = hist.from_id
                 num_blocks = hist.blocks
                 if hist.to_id == self.id and "Seed" not in from_you:
                     peer_contribution.append([from_you, num_blocks])
 
-        peer_pd = pd.DataFrame(peer_contribution, columns = ["Peer", "Num"])
-        peer_pd.groupby("Peer").sum()
-        peer_np = peer_pd.sort().as_matrix()
+        logging.debug("total peer contributions from lsat round %s" %peer_contribution)            
 
         if len(requests) == 0:
             logging.debug("No one wants my pieces!")
@@ -131,8 +116,7 @@ class KlczPropshare(Peer):
             ###### history based on number of files they give you that you need
             
             n = min(len(requests), 3)
-            contr_lst = [i for [i,j] in peer_np] 
-            logging.debug("Contribution list: %s" % (contr_lst))
+            contr_lst = [i for [i,j] in peer_contribution] 
 
             if n == 0:
                 chosen = []
@@ -147,11 +131,16 @@ class KlczPropshare(Peer):
             else:
                 requested = random.choice(request_remaining)
                 chosen = np.append(chosen, requested)
-
+            logging.debug("who is in chosen %s" %(chosen))
+            logging.debug("who got in chosen because of request %s" %(requested))
 
             # Evenly "split" my upload bandwidth among the one chosen requester
-            bws = even_split(self.up_bw, len(chosen))
-            logging.debug("Bandwidth: %s" %(bws))
+            bws = [j/self.up_bw*0.9 for [i,j] in peer_contribution if i in chosen]
+            if len(bws) <= 2:
+                bws = even_split(self.up_bw, len(chosen))
+            else: 
+                bws[-1] = 0.1*self.up_bw
+            logging.debug("bandwidth overall %s" %(bws))
 
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
