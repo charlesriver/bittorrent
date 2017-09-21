@@ -115,8 +115,6 @@ class KlczStd(Peer):
 			bws = []
 		else:
 			logging.debug("Still here: uploading to the best peer")
-			# change my internal state for no reason
-			self.dummy_state["cake"] = "pie"
 
 			###### history based on number of files they give you that you need
 			
@@ -130,6 +128,7 @@ class KlczStd(Peer):
 
 			request_remaining = [i for i in contr_lst if i not in chosen]
 
+            # optimistic unchoking
 			if len(contr_lst) == 0 or len(request_remaining) == 0:
 				requested = random.choice(requests)
 				chosen = np.append(chosen, requested.requester_id)
