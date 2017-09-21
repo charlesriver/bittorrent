@@ -76,8 +76,6 @@ class KlczStd(Peer):
 
 		return requests
 	
-
-    ## CHANGE THIS FOR BITTYRANT
 	def uploads(self, requests, peers, history):
 		"""
 		requests -- a list of the requests for this peer for this round
@@ -107,7 +105,7 @@ class KlczStd(Peer):
 
 		peer_pd = pd.DataFrame(peer_contribution, columns = ["Peer", "Num"])
 		peer_pd.groupby("Peer").sum()
-		peer_np = peer_pd.sort().as_matrix()
+		peer_np = peer_pd.sort_values(by="Num", ascending=False).as_matrix()
 
 		if len(requests) == 0:
 			logging.debug("No one wants my pieces!")
