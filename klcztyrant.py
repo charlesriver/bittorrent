@@ -30,6 +30,8 @@ class KlczTyrant(KlczStd):
         # store estimates of flows and thresholds over multiple rounds
         self.fs = dict()
         self.taus = dict()
+        # store LENGTH of list of available pieces for each pair and turns since last change
+        self.haves = dict()
 
         self.post_init()
 
@@ -57,13 +59,25 @@ class KlczTyrant(KlczStd):
         # if first round, initialize flow and threshold estimates
         fs = self.fs
         taus = self.taus
+        haves = self.haves
         if round == 0:
             for peer_j in peers:
-                fs[peer_j.id] = 1 # need some initial value?
+                fs[peer_j.id] = int(self.conf.max_up_bw/2.) # need some initial value?
                 taus[peer_j.id] = tau_init # AS A FUNCTION OF MAX BW??
+                haves[peer_j.id] = [len(peer_j.available_pieces), 1]
 
         # otherwise, update flow and threshold estimates from last round's results
         if round > 0:
+            # estimate f_ij by changes in have message, overwrite as needed below
+            for p in peers:
+                if haves[p.id][0]-len(p.available_pieces) == 0:
+                    haves[p.id][1] = haves[p.id][1] + 1
+                else:
+                    haves[p.id][0] = len(p.available_pieces)
+                    fs[p.id] = int(self.conf.blocks_per_piece / haves[p.id][1])
+                    haves[p.id][1] = 1
+
+            # update estimates from interactions with other players
             # set for who was unchoked in the last round
             unchoked = set()
             for u in history.uploads[round-1]:
@@ -74,6 +88,7 @@ class KlczTyrant(KlczStd):
             for d in history.downloads[round-1]:
                 unchokers.add(d.from_id)
                 flow[d.from_id] = d.blocks
+
             # update estimates of thresholds and flows
             for j in unchoked:
                 if j not in unchokers:
@@ -126,10 +141,13 @@ class KlczTyrant(KlczStd):
             for i in xrange(len(ranked)):
                 cumsum += ranked[i][1]
                 if cumsum > cap:
+                    cumsum -= ranked[i][1] # store the balance
                     break
                 chosen.append(ranked[i][0])
             # give requesters threshold bandwidth
             bws = [taus[j] for j in chosen]
+            if bws != []:
+                bws[-1] = cap - cumsum
 
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
