@@ -14,66 +14,11 @@ import logging
 from messages import Upload, Request
 from util import even_split
 from peer import Peer
+from klczstd import KlczStd
 
 from collections import Counter
 
-
-class KlczPropshare(Peer):
-    def post_init(self):
-        print "post_init(): %s here!" % self.id
-        self.dummy_state = dict()
-        self.dummy_state["cake"] = "lie"
-    
-    def requests(self, peers, history):
-        """
-        peers: available info about the peers (who has what pieces)
-        history: what's happened so far as far as this peer can see
-
-        returns: a list of Request() objects
-
-        This will be called after update_pieces() with the most recent state.
-        """
-        needed = lambda i: self.pieces[i] < self.conf.blocks_per_piece
-        needed_pieces = filter(needed, range(len(self.pieces)))
-        np_set = set(needed_pieces)  # sets support fast intersection ops.
-
-        logging.debug("%s here: still need pieces %s" % (
-            self.id, needed_pieces))
-
-        logging.debug("%s still here. Here are some peers:" % self.id)
-        for p in peers:
-            logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
-
-        logging.debug("And look, I have my entire history available too:")
-        logging.debug("look at the AgentHistory class in history.py for details")
-        logging.debug(str(history))
-
-        requests = []   # We'll put all the things we want here
-        # Symmetry breaking is good...
-        random.shuffle(needed_pieces)
-
-        # request all available pieces from all peers!
-        # (up to self.max_requests from each)
-            
-        all_pieces = set()
-        for peer in peers:
-            all_pieces.update(peer.available_pieces)
-
-        for peer in peers:
-            isect = all_pieces.intersection(np_set)
-            all_pieces_filter = [i for i in all_pieces if i in isect]
-            pieces_count = Counter(all_pieces_filter)
-            rare_pieces = pieces_count.keys()[::-1][:2]
-            rare_pieces_post = set(rare_pieces).intersection(peer.available_pieces)
-            n = min(self.max_requests, len(rare_pieces_post))
-            for piece_id in random.sample(rare_pieces_post, n):
-                start_block = self.pieces[piece_id]
-                r = Request(self.id, peer.id, piece_id, start_block)
-                requests.append(r)
-                if self.pieces[piece_id] == self.conf.blocks_per_piece:
-                    np_set.discard(piece_id)
-
-        return requests
+class KlczPropshare(KlczStd):
            
     def uploads(self, requests, peers, history):
         """

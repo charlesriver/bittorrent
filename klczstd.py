@@ -58,7 +58,9 @@ class KlczStd(Peer):
 			
 		all_pieces = []
 		for peer in peers:
-			all_pieces.append(peer.available_pieces)
+			all_pieces += list(peer.available_pieces)
+
+		all_pieces = filter(lambda x: x!=[], all_pieces)
 
 		for peer in peers:
 			isect = set(all_pieces).intersection(np_set)
@@ -75,7 +77,7 @@ class KlczStd(Peer):
 					np_set.discard(piece_id)
 
 		return requests
-		   
+	
 	def uploads(self, requests, peers, history):
 		"""
 		requests -- a list of the requests for this peer for this round
@@ -105,7 +107,7 @@ class KlczStd(Peer):
 
 		peer_pd = pd.DataFrame(peer_contribution, columns = ["Peer", "Num"])
 		peer_pd.groupby("Peer").sum()
-		peer_np = peer_pd.sort().as_matrix()
+		peer_np = peer_pd.sort_values(by="Num", ascending=False).as_matrix()
 
 		if len(requests) == 0:
 			logging.debug("No one wants my pieces!")
