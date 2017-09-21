@@ -75,7 +75,9 @@ class KlczStd(Peer):
 					np_set.discard(piece_id)
 
 		return requests
-		   
+	
+
+    ## CHANGE THIS FOR BITTYRANT
 	def uploads(self, requests, peers, history):
 		"""
 		requests -- a list of the requests for this peer for this round
