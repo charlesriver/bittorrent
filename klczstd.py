@@ -56,12 +56,14 @@ class KlczStd(Peer):
 		# request all available pieces from all peers!
 		# (up to self.max_requests from each)
 			
-		all_pieces = set()
+		all_pieces = []
 		for peer in peers:
-			all_pieces.update(peer.available_pieces)
+			all_pieces += list(peer.available_pieces)
+
+		all_pieces = filter(lambda x: x!=[], all_pieces)
 
 		for peer in peers:
-			isect = all_pieces.intersection(np_set)
+			isect = set(all_pieces).intersection(np_set)
 			all_pieces_filter = [i for i in all_pieces if i in isect]
 			pieces_count = Counter(all_pieces_filter)
 			rare_pieces = pieces_count.keys()[::-1][:2]
