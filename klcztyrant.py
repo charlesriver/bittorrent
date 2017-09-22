@@ -1,11 +1,5 @@
 #!/usr/bin/python
 
-# This is a dummy peer that just illustrates the available information your peers 
-# have available.
-
-# You'll want to copy this file to AgentNameXXX.py for various versions of XXX,
-# probably get rid of the silly logging messages, and then add more logic.
-
 import random
 import logging
 
@@ -54,7 +48,7 @@ class KlczTyrant(KlczStd):
         r = 3
         alpha = .2
 
-        tau_init = 1 # CHECK THIS
+        tau_init = int(self.up_bw / len(peers))
 
         # if first round, initialize flow and threshold estimates
         fs = self.fs
@@ -62,7 +56,7 @@ class KlczTyrant(KlczStd):
         haves = self.haves
         if round == 0:
             for peer_j in peers:
-                fs[peer_j.id] = int(self.conf.max_up_bw/2.) # need some initial value?
+                fs[peer_j.id] = int(.25*(self.conf.max_up_bw + self.conf.min_up_bw)/2.) # need some initial value?
                 taus[peer_j.id] = tau_init # AS A FUNCTION OF MAX BW??
                 haves[peer_j.id] = [len(peer_j.available_pieces), 1]
 
@@ -118,7 +112,7 @@ class KlczTyrant(KlczStd):
                 roi = self.conf.max_up_bw
             else:
                 roi = int(fs[peer.id] / taus[peer.id]) # round down
-            ranked.append((peer.id, roi)) # round down
+            ranked.append([peer.id, roi]) # round down
         ranked.sort(key = lambda t: t[1], reverse=True)
 
         # actually do the uploading
@@ -138,16 +132,16 @@ class KlczTyrant(KlczStd):
             # decide who to unchoke until run out of capacity
             chosen = []
             cumsum = 0
-            for i in xrange(len(ranked)):
-                cumsum += ranked[i][1]
+            for j in range(len(ranked)):
+                cumsum += taus[ranked[j][0]]
                 if cumsum > cap:
-                    cumsum -= ranked[i][1] # store the balance
+                    cumsum -= taus[ranked[j][0]] # store the balance
                     break
-                chosen.append(ranked[i][0])
+                chosen.append(ranked[j][0])
             # give requesters threshold bandwidth
             bws = [taus[j] for j in chosen]
             if bws != []:
-                bws[-1] = cap - cumsum
+                bws[0] += cap - cumsum # give excess bandwidth to the first person
 
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
