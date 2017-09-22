@@ -8,15 +8,11 @@
 
 
 import random
-import numpy as np
-import pandas as pd
 import logging
 
 from messages import Upload, Request
 from util import even_split
 from peer import Peer
-
-from collections import Counter
 
 
 class KlczStd(Peer):
@@ -65,7 +61,14 @@ class KlczStd(Peer):
 		for peer in peers:
 			isect = set(all_pieces).intersection(np_set)
 			all_pieces_filter = [i for i in all_pieces if i in isect]
-			pieces_count = Counter(all_pieces_filter)
+
+			pieces_count = dict()
+			for item in all_pieces_filter:
+				if item not in pieces_count.keys():
+					pieces_count[item] = 0
+				else:
+					pieces_count[item] += 1
+			sorted(pieces_count.items(), key=lambda (k, v): -v)
 			rare_pieces = pieces_count.keys()[::-1][:2]
 			rare_pieces_post = set(rare_pieces).intersection(peer.available_pieces)
 			n = min(self.max_requests, len(rare_pieces_post))
@@ -90,6 +93,7 @@ class KlczStd(Peer):
 		"""
 
 		round = history.current_round()
+		print "round num", round
 		logging.debug("%s again.  It's round %d." % (
 			self.id, round))
 		# One could look at other stuff in the history too here.
@@ -97,17 +101,17 @@ class KlczStd(Peer):
 		# has a list of Download objects for each Download to this peer in
 		# the previous round.
 
-		peer_contribution = []
+		peer_contribution = dict()
 		if round >= 2: 
-			for hist in np.concatenate((history.downloads[round-1],history.downloads[round-2])):
+			for hist in (history.downloads[round-1] + history.downloads[round-2]):
 				from_you = hist.from_id
 				num_blocks = hist.blocks
 				if hist.to_id == self.id and "Seed" not in from_you:
-					peer_contribution.append([from_you, num_blocks])
-
-		peer_pd = pd.DataFrame(peer_contribution, columns = ["Peer", "Num"])
-		peer_pd.groupby("Peer").sum()
-		peer_np = peer_pd.sort_values(by="Num", ascending=False).as_matrix()
+					if from_you not in peer_contribution.keys():
+						peer_contribution[from_you] = num_blocks
+					else:
+						peer_contribution[from_you] += num_blocks
+		sorted(peer_contribution.items(), key=lambda (k, v): -v)
 
 		if len(requests) == 0:
 			logging.debug("No one wants my pieces!")
@@ -119,7 +123,7 @@ class KlczStd(Peer):
 			###### history based on number of files they give you that you need
 			
 			n = min(len(requests), 3)
-			contr_lst = [i for [i,j] in peer_np] 
+			contr_lst = peer_contribution.values()
 
 			if n == 0:
 				chosen = []
@@ -131,11 +135,10 @@ class KlczStd(Peer):
             # optimistic unchoking
 			if len(contr_lst) == 0 or len(request_remaining) == 0:
 				requested = random.choice(requests)
-				chosen += requested.requester_id
+				chosen.append(requested.requester_id)
 			else:
 				requested = random.choice(request_remaining)
-				chosen += requested
-
+				chosen.append(requested)
 
 			# Evenly "split" my upload bandwidth among the one chosen requester
 			bws = even_split(self.up_bw, len(chosen))
