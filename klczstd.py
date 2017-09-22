@@ -63,15 +63,17 @@ class KlczStd(Peer):
 			all_pieces_filter = [i for i in all_pieces if i in isect]
 
 			pieces_count = dict()
+			
 			for item in all_pieces_filter:
 				if item not in pieces_count.keys():
 					pieces_count[item] = 0
 				else:
 					pieces_count[item] += 1
 			sorted(pieces_count.items(), key=lambda (k, v): -v)
-			rare_pieces = pieces_count.keys()[::-1][:2]
+			rare_pieces = pieces_count.keys()[::-1]
 			rare_pieces_post = set(rare_pieces).intersection(peer.available_pieces)
 			n = min(self.max_requests, len(rare_pieces_post))
+
 			for piece_id in random.sample(rare_pieces_post, n):
 				start_block = self.pieces[piece_id]
 				r = Request(self.id, peer.id, piece_id, start_block)
@@ -93,7 +95,6 @@ class KlczStd(Peer):
 		"""
 
 		round = history.current_round()
-		print "round num", round
 		logging.debug("%s again.  It's round %d." % (
 			self.id, round))
 		# One could look at other stuff in the history too here.
