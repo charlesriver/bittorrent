@@ -132,10 +132,10 @@ class KlczStd(Peer):
 
 			if len(contr_lst) == 0 or len(request_remaining) == 0:
 				requested = random.choice(requests)
-				chosen = np.append(chosen, requested.requester_id)
+				chosen += requested.requester_id
 			else:
 				requested = random.choice(request_remaining)
-				chosen = np.append(chosen, requested)
+				chosen += requested
 
 
 			# Evenly "split" my upload bandwidth among the one chosen requester

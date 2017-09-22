@@ -72,15 +72,17 @@ class KlczPropshare(KlczStd):
 
             if len(contr_lst) == 0 or len(request_remaining) == 0:
                 requested = random.choice(requests)
-                chosen = np.append(chosen, requested.requester_id)
+                chosen += requested.requester_id
             else:
                 requested = random.choice(request_remaining)
-                chosen = np.append(chosen, requested)
+                chosen += requested
             logging.debug("who is in chosen %s" %(chosen))
             logging.debug("who got in chosen because of request %s" %(requested))
 
             # Evenly "split" my upload bandwidth among the one chosen requester
-            bws = [j/self.up_bw*0.9 for [i,j] in peer_contribution if i in chosen]
+
+            total_contr = sum(j for [i,j] in peer_contribution if i in chosen)
+            bws = [j/total_contr*self.up_bw*0.9 for [i,j] in peer_contribution if i in chosen]
             if len(bws) <= 2:
                 bws = even_split(self.up_bw, len(chosen))
             else: 
