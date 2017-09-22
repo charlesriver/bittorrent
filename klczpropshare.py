@@ -7,16 +7,13 @@
 # probably get rid of the silly logging messages, and then add more logic.
 
 import random
-import numpy as np
-import pandas as pd
 import logging
+import math
 
 from messages import Upload, Request
 from util import even_split
 from peer import Peer
 from klczstd import KlczStd
-
-from collections import Counter
 
 class KlczPropshare(KlczStd):
            
@@ -72,20 +69,22 @@ class KlczPropshare(KlczStd):
 
             if len(contr_lst) == 0 or len(request_remaining) == 0:
                 requested = random.choice(requests)
-                chosen = np.append(chosen, requested.requester_id)
+                chosen.append(requested.requester_id)
             else:
                 requested = random.choice(request_remaining)
-                chosen = np.append(chosen, requested)
+                chosen.append(requested)
             logging.debug("who is in chosen %s" %(chosen))
             logging.debug("who got in chosen because of request %s" %(requested))
 
             # Evenly "split" my upload bandwidth among the one chosen requester
-            bws = [j/self.up_bw*0.9 for [i,j] in peer_contribution if i in chosen]
-            if len(bws) <= 2:
+
+            total_contr = sum(j for [i,j] in peer_contribution if i in chosen)
+            bws = [math.floor(float(j)/float(total_contr)*self.up_bw*0.9) for [i,j] in peer_contribution if i in chosen]
+            bws.append(0)
+            if len(bws) <= 1:
                 bws = even_split(self.up_bw, len(chosen))
             else: 
-                bws[-1] = 0.1*self.up_bw
-            logging.debug("bandwidth overall %s" %(bws))
+                bws[-1] = math.floor(0.1*self.up_bw)
 
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
