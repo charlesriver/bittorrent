@@ -141,7 +141,7 @@ class KlczTyrant(KlczStd):
             # give requesters threshold bandwidth
             bws = [taus[j] for j in chosen]
             if bws != []:
-                bws[0] += cap - cumsum # give excess bandwidth to the first person
+                bws[random.choice(range(len(bws)))] += cap - cumsum # give excess bandwidth to the first person
 
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
